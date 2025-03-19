@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Qur'an Murottal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        /* Animasi Loading */
+#loading {
+    text-align: center;
+    padding: 20px;
+}
+
+/* Wrapper daftar surah agar bisa di-scroll */
+.surah-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 0;
+    background: white;
+}
+
+/* Header tetap di atas saat scrolling */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background: #28a745;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    z-index: 2;
+    border-radius: 5px 5px 0 0;
+    margin: 0;
+}
+
+/* Warna background accordion menjadi putih */
+.accordion-item {
+    background: white !important;
+}
+
+/* Warna teks lebih jelas */
+.accordion-button {
+    background: white !important;
+    
+}
+
+.accordion-button:not(.collapsed) {
+    background: white !important;
+    
+}
+
+    </style>
+   <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let surahData = [];
+        let visibleCount = 10;
+        const accordion = document.getElementById("quranAccordion");
+        const searchInput = document.getElementById("searchInput");
+        const loading = document.getElementById("loading");
+        let allAudioElements = [];
+        let isPlayingAll = false;
+
+        async function fetchSurah() {
+            try {
+                loading.style.display = "block";
+                const response = await fetch('/api/surah');
+                const data = await response.json();
+                surahData = data;
+                loadMoreSurah();
+            } catch (error) {
+                console.error("Gagal mengambil data:", error);
+            } finally {
+                loading.style.display = "none";
+            }
+        }
+
+        function loadMoreSurah() {
+            const fragment = document.createDocumentFragment();
+            for (let i = accordion.children.length; i < visibleCount && i < surahData.length; i++) {
+                let surah = surahData[i];
+                let item = document.createElement("div");
+                item.className = "accordion-item";
+                item.innerHTML = `
+                    <h2 class="accordion-header">
+                        <button class="accordion-button text-success" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${surah.nomor}">
+                            <strong>${surah.nomor}. ${surah.nama} (${surah.nama_latin})</strong> - ${surah.jumlah_ayat} Ayat | ${surah.tempat_turun}
+                        </button>
+                    </h2>
+                    <div id="collapse${surah.nomor}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <p><strong>Arti:</strong> ${surah.arti}</p>
+                            <audio controls class="w-100" data-surah="${surah.nomor}">
+                                <source src="${surah.audio}" type="audio/mpeg">
+                                Browser Anda tidak mendukung pemutar audio.
+                            </audio>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(item);
+            }
+            accordion.appendChild(fragment);
+            setupAudioAutoplay();
+        }
+
+        function setupAudioAutoplay() {
+            allAudioElements = document.querySelectorAll("audio");
+            allAudioElements.forEach((audio, index) => {
+                audio.addEventListener("ended", function () {
+                    if (index + 1 < allAudioElements.length) {
+                        allAudioElements[index + 1].play();
+                    }
+                });
+            });
+        }
+
+        function playAllAudio() {
+            if (allAudioElements.length > 0) {
+                isPlayingAll = true;
+                allAudioElements[0].play();
+            }
+        }
+
+        function searchSurah() {
+            let input = searchInput.value.toLowerCase();
+            document.querySelectorAll('.accordion-item').forEach(item => {
+                let title = item.querySelector('.accordion-button').innerText.toLowerCase();
+                item.style.display = title.includes(input) ? "" : "none";
+            });
+        }
+
+        searchInput.addEventListener("keyup", searchSurah);
+        document.getElementById("surahContainer").addEventListener("scroll", function () {
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 10) {
+                visibleCount += 10;
+                loadMoreSurah();
+            }
+        });
+
+        fetchSurah();
+    });
+</script>
+
+</head>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container">
+        <a class="navbar-brand" href="#">Qur'an Murottal</a>
+        <!-- dimatikan
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">About</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+            </ul>
+        </div>
+        -->
+    </div>
+</nav>
+
+<!-- Header -->
+<div class="container text-center mt-4">
+    <img src="https://seeklogo.com/images/Q/quran-logo-E42415D8AF-seeklogo.com.png" alt="Qur'an" width="100">
+    <h3 class="mt-2 text-success">Murottal Misyari Rasyid Al-'Afasi</h3>
+</div>
+
+<!-- Search Bar -->
+<div class="container mt-3">
+    <input type="text" id="searchInput" class="form-control" placeholder="Cari surat...">
+</div>
+
+<!-- Loading Animation -->
+<div id="loading">
+    <div class="spinner-border text-success" role="status">
+        <span class="visually-hidden">Memuat...</span>
+    </div>
+</div>
+
+<!-- Daftar Surah dengan Scroll -->
+<div class="container mt-3">
+    <div class="surah-container" id="surahContainer">
+        <div class="sticky-header">Daftar Surah</div>
+        <div class="accordion" id="quranAccordion"></div>
+    </div>
+</div>
+
+<!-- Floating Play All Button -->
+<!-- <button id="playAllButton" class="btn btn-success btn-lg rounded-circle" onclick="playAllAudio()" data-bs-toggle="tooltip" data-bs-placement="left" title="Putar Semua">
+    ▶️
+</button>
+
+<style>
+    #playAllButton {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    }
+</style>
+
+<script>
+    // Tooltip Bootstrap untuk Play All Button
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+</script>-->
+
+
+</body>
+</html>
